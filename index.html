@@ -1,0 +1,376 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Game Hứng Táo</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #fff5d6, #dff5df);
+        }
+
+        .container {
+            width: 540px;
+            max-width: 95%;
+            padding: 20px;
+            text-align: center;
+            background: white;
+            border-radius: 18px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        h1 {
+            color: #43833a;
+            margin-top: 0;
+        }
+
+        .description {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .information {
+            display: flex;
+            justify-content: space-around;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .information div {
+            flex: 1;
+            padding: 12px;
+            background: #eff7e8;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
+        #game {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            overflow: hidden;
+            border: 3px solid #9bc47f;
+            border-radius: 12px;
+            background: linear-gradient(
+                to bottom,
+                #c8efff 0%,
+                #f2ffe9 80%,
+                #b9df8b 80%,
+                #b9df8b 100%
+            );
+        }
+
+        #apple {
+            position: absolute;
+            top: 0;
+            left: 0;
+            font-size: 32px;
+            line-height: 1;
+            z-index: 2;
+            user-select: none;
+        }
+
+        #basket {
+            position: absolute;
+            bottom: 10px;
+            left: 0;
+            width: 86px;
+            height: 42px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: repeating-linear-gradient(
+                90deg,
+                #b9783c 0px,
+                #b9783c 10px,
+                #dba15d 10px,
+                #dba15d 18px
+            );
+            border: 3px solid #78431f;
+            border-radius: 5px 5px 22px 22px;
+            font-size: 25px;
+            z-index: 3;
+        }
+
+        #overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 5;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.88);
+        }
+
+        #overlay h2 {
+            margin: 0;
+            color: #c44235;
+            font-size: 30px;
+        }
+
+        #overlay p {
+            margin: 0;
+        }
+
+        button {
+            margin-top: 15px;
+            padding: 12px 26px;
+            border: none;
+            border-radius: 9px;
+            background: #4d8c3d;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #356c29;
+        }
+
+        .hint {
+            margin-bottom: 0;
+            color: #666;
+            font-size: 13px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🍎 Mini Game Hứng Táo</h1>
+
+        <p class="description">
+            Di chuyển giỏ để hứng táo và đạt điểm cao nhất!
+        </p>
+
+        <div class="information">
+            <div>⭐ Điểm: <span id="score">0</span></div>
+            <div>❤️ Mạng: <span id="lives">3</span></div>
+        </div>
+
+        <div id="game">
+            <div id="apple">🍎</div>
+            <div id="basket">🧺</div>
+
+            <div id="overlay">
+                <h2>Sẵn sàng chưa?</h2>
+                <p>Nhấn Bắt đầu để chơi game.</p>
+            </div>
+        </div>
+
+        <button id="startButton">▶ Bắt đầu</button>
+
+        <p class="hint">
+            Sử dụng phím ← và → để di chuyển giỏ.
+        </p>
+    </div>
+
+    <script>
+        // Lấy các phần tử HTML
+        const game = document.getElementById("game");
+        const apple = document.getElementById("apple");
+        const basket = document.getElementById("basket");
+        const scoreText = document.getElementById("score");
+        const livesText = document.getElementById("lives");
+        const overlay = document.getElementById("overlay");
+        const startButton = document.getElementById("startButton");
+
+        // Kích thước các đối tượng
+        const BASKET_WIDTH = 86;
+        const BASKET_HEIGHT = 42;
+        const APPLE_SIZE = 32;
+        const BASKET_BOTTOM = 10;
+
+        // Biến của trò chơi
+        let basketX = 0;
+        let appleX = 0;
+        let appleY = 0;
+        let score = 0;
+        let lives = 3;
+        let fallSpeed = 2;
+        let running = false;
+        let animationId = null;
+        let lastTime = 0;
+
+        // Cập nhật vị trí giỏ
+        function updateBasket() {
+            basket.style.left = basketX + "px";
+        }
+
+        // Đưa táo về phía trên tại vị trí ngẫu nhiên
+        function resetApple() {
+            const maxX = Math.max(0, game.clientWidth - APPLE_SIZE);
+
+            appleX = Math.random() * maxX;
+            appleY = -APPLE_SIZE;
+
+            apple.style.left = appleX + "px";
+            apple.style.top = appleY + "px";
+        }
+
+        // Cập nhật điểm và số mạng
+        function updateInformation() {
+            scoreText.textContent = score;
+            livesText.textContent = lives;
+        }
+
+        // Bắt đầu hoặc chơi lại
+        function startGame() {
+            if (animationId !== null) {
+                cancelAnimationFrame(animationId);
+            }
+
+            score = 0;
+            lives = 3;
+            fallSpeed = 2;
+            running = true;
+            lastTime = 0;
+
+            basketX = (game.clientWidth - BASKET_WIDTH) / 2;
+
+            updateBasket();
+            updateInformation();
+            resetApple();
+
+            overlay.style.display = "none";
+            startButton.textContent = "↻ Chơi lại";
+
+            animationId = requestAnimationFrame(gameLoop);
+        }
+
+        // Kết thúc trò chơi
+        function endGame() {
+            running = false;
+
+            if (animationId !== null) {
+                cancelAnimationFrame(animationId);
+            }
+
+            animationId = null;
+
+            overlay.innerHTML = `
+                <h2>Game Over!</h2>
+                <p>Bạn đạt được <strong>${score}</strong> điểm.</p>
+                <p>Nhấn Chơi lại để thử lần nữa!</p>
+            `;
+
+            overlay.style.display = "flex";
+            startButton.textContent = "↻ Chơi lại";
+        }
+
+        // Vòng lặp chính của trò chơi
+        function gameLoop(timestamp) {
+            if (!running) {
+                return;
+            }
+
+            if (lastTime === 0) {
+                lastTime = timestamp;
+            }
+
+            // Giúp tốc độ ổn định hơn giữa các màn hình
+            const delta = Math.min(
+                (timestamp - lastTime) / 16.67,
+                2
+            );
+
+            lastTime = timestamp;
+
+            // Cho táo rơi xuống
+            appleY += fallSpeed * delta;
+            apple.style.top = appleY + "px";
+
+            // Xác định vị trí giỏ
+            const basketTop =
+                game.clientHeight - BASKET_HEIGHT - BASKET_BOTTOM;
+
+            // Kiểm tra va chạm theo chiều ngang
+            const horizontalHit =
+                appleX + APPLE_SIZE > basketX &&
+                appleX < basketX + BASKET_WIDTH;
+
+            // Kiểm tra va chạm theo chiều dọc
+            const verticalHit =
+                appleY + APPLE_SIZE >= basketTop &&
+                appleY <= basketTop + BASKET_HEIGHT;
+
+            // Nếu hứng được táo
+            if (horizontalHit && verticalHit) {
+                score++;
+
+                // Tăng nhẹ tốc độ sau mỗi lần hứng
+                fallSpeed += 0.12;
+
+                updateInformation();
+                resetApple();
+            }
+
+            // Nếu táo rơi khỏi màn hình
+            else if (appleY > game.clientHeight) {
+                lives--;
+
+                updateInformation();
+
+                if (lives <= 0) {
+                    endGame();
+                    return;
+                }
+
+                resetApple();
+            }
+
+            // Tiếp tục vòng lặp
+            animationId = requestAnimationFrame(gameLoop);
+        }
+
+        // Điều khiển giỏ bằng bàn phím
+        document.addEventListener("keydown", function(event) {
+            if (!running) {
+                return;
+            }
+
+            if (event.key === "ArrowLeft") {
+                event.preventDefault();
+
+                basketX = Math.max(0, basketX - 25);
+                updateBasket();
+            }
+
+            if (event.key === "ArrowRight") {
+                event.preventDefault();
+
+                basketX = Math.min(
+                    game.clientWidth - BASKET_WIDTH,
+                    basketX + 25
+                );
+
+                updateBasket();
+            }
+        });
+
+        // Gắn sự kiện cho nút bắt đầu
+        startButton.addEventListener("click", startGame);
+
+        // Thiết lập ban đầu
+        basketX = (game.clientWidth - BASKET_WIDTH) / 2;
+        updateBasket();
+        resetApple();
+    </script>
+</body>
+</html>
